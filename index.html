@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Blush · Expense Tracker</title>
+<style>
+:root{--bg:#fff5f8;--surface:#fff;--ink:#4a1631;--muted:#9a6a82;--line:#f6d3e1;--accent:#d6336c;--accent-ink:#fff;--soft:#ffe3ee;--danger:#c92a2a;--shadow:0 4px 18px rgba(214,51,108,.12);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a0f1d;--surface:#3a1628;--ink:#ffe8f1;--muted:#d9a3bb;--line:#5b2640;--accent:#f06595;--accent-ink:#2a0f1d;--soft:#4d1d35;--danger:#ff8787;--shadow:none;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#2a0f1d;--surface:#3a1628;--ink:#ffe8f1;--muted:#d9a3bb;--line:#5b2640;--accent:#f06595;--accent-ink:#2a0f1d;--soft:#4d1d35;--danger:#ff8787;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Georgia,"Times New Roman",serif;min-height:100vh}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--surface);z-index:10}
+h1,h2,h3{font-weight:700;margin:0}
+button,input,select{font:inherit;color:inherit}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:8px}
+header h1{font-size:1.25rem;color:var(--accent)}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:9px 18px;font-weight:700;cursor:pointer}
+.btn.ghost{background:var(--soft);color:var(--ink)}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.sm{padding:5px 12px;font-size:.85rem}
+.btn:focus-visible,input:focus-visible,select:focus-visible,.tab:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+nav{display:flex;gap:6px;padding:12px 16px 0;max-width:760px;margin:0 auto}
+.tab{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px;cursor:pointer;font-weight:700;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.empty{text-align:center;padding:40px 16px}
+.empty p{color:var(--muted)}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:480px}
+th,td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--line);font-size:.95rem}
+th{color:var(--muted);font-weight:700}
+td.amt{font-weight:700;text-align:right}th.amt{text-align:right}
+.tag{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.82rem;font-weight:700;color:#3a0f25}
+.big{font-size:2.2rem;font-weight:700;color:var(--accent);line-height:1.1}
+.muted{color:var(--muted);font-size:.9rem}
+label{display:block;font-weight:700;margin:12px 0 4px}
+input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+input[type=color]{padding:2px;height:42px;width:64px}
+.err{color:var(--danger);font-size:.85rem;min-height:1.1em;margin-top:2px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row.sb{justify-content:space-between}
+#ov{position:fixed;inset:0;background:rgba(74,22,49,.5);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+#ov.on{display:flex}
+#box{background:var(--surface);border-radius:20px;padding:20px;width:100%;max-width:420px;max-height:90vh;overflow:auto}
+.catrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.dot{width:22px;height:22px;border-radius:50%;flex:none}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:.88rem}
+textarea{width:100%;height:150px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);padding:8px;font:12px monospace}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:999px;z-index:30}
+@media (prefers-reduced-motion:no-preference){#box{animation:pop .18s ease-out}@keyframes pop{from{transform:scale(.96);opacity:0}}}
+</style>
+</head>
+<body>
+<header><h1>Blush Expenses</h1><button class="btn" id="add">+ Add expense</button></header>
+<nav role="tablist"><button class="tab" role="tab" data-v="list">Expenses</button><button class="tab" role="tab" data-v="stats">Analytics</button><button class="tab" role="tab" data-v="cats">Categories</button></nav>
+<main id="main"></main>
+<div id="ov"><div id="box" role="dialog" aria-modal="true"></div></div>
+<script>
+var KEY="blush-expense-tracker-v1";
+var DEF=[["Food","#f783ac"],["Transport","#e64980"],["Bills","#c2255c"],["Shopping","#faa2c1"],["Entertainment","#d6336c"],["Other","#ffc9de"]];
+var S={expenses:[],categories:DEF.map(function(c,i){return{id:"c"+(i+1),name:c[0],color:c[1]}})};
+try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&p.expenses&&p.categories)S=p}}catch(e){}
+var timer;function save(){clearTimeout(timer);timer=setTimeout(function(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},300)}
+var view="list",month=today().slice(0,7);
+function $(s){return document.querySelector(s)}
+function today(){var d=new Date();return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function inr(n){return"₹"+Number(n).toLocaleString("en-IN",{maximumFractionDigits:2})}
+function cat(id){return S.categories.find(function(c){return c.id===id})||{name:"Unknown",color:"#ddd"}}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function toast(t){var e=document.createElement("div");e.className="toast";e.textContent=t;document.body.appendChild(e);setTimeout(function(){e.remove()},1800)}
+function modal(h){$("#box").innerHTML=h;$("#ov").classList.add("on");var f=$("#box input,#box select,#box button");if(f)f.focus()}
+function closeM(){$("#ov").classList.remove("on")}
+$("#ov").addEventListener("click",function(e){if(e.target.id==="ov")closeM()});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeM()});
+function confirmM(msg,okLabel,fn){modal("<h3>Are you sure?</h3><p>"+msg+"</p><div class='row sb'><button class='btn ghost' id='no'>Cancel</button><button class='btn danger' id='yes'>"+okLabel+"</button></div>");$("#no").onclick=closeM;$("#yes").onclick=function(){closeM();fn()}}
+function monthTotal(m){return S.expenses.reduce(function(a,e){return e.date.slice(0,7)===m?a+e.amount:a},0)}
+function shift(m,n){var y=+m.slice(0,4),mo=+m.slice(5,7)-1+n;var d=new Date(y,mo,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
+function mlabel(m){return new Date(m+"-01T00:00:00").toLocaleString("en-IN",{month:"short"})}
+
+function render(){
+ document.querySelectorAll(".tab").forEach(function(t){t.setAttribute("aria-selected",t.dataset.v===view)});
+ $("#main").innerHTML=view==="list"?vList():view==="stats"?vStats():vCats();
+ bind()
+}
+function vList(){
+ if(!S.expenses.length)return"<div class='card empty'><h2>No expenses yet</h2><p>Add your first expense to start tracking where your money goes.</p><button class='btn' data-act='add'>+ Add expense</button></div>";
+ var rows=S.expenses.slice().sort(function(a,b){return b.date.localeCompare(a.date)}).map(function(e){var c=cat(e.category);
+ return"<tr><td>"+e.date+"</td><td><span class='tag' style='background:"+c.color+"'>"+esc(c.name)+"</span></td><td>"+esc(e.note||"–")+"</td><td class='amt'>"+inr(e.amount)+"</td><td><button class='btn ghost sm' data-del='"+e.id+"' aria-label='Delete expense'>Delete</button></td></tr>"}).join("");
+ return"<div class='card tbl'><table><thead><tr><th>Date</th><th>Category</th><th>Note</th><th class='amt'>Amount</th><th></th></tr></thead><tbody>"+rows+"</tbody></table></div>"
+}
+function vStats(){
+ var cur=monthTotal(month),prev=monthTotal(shift(month,-1)),pc;
+ pc=prev>0?(cur-prev)/prev*100:null;
+ var chg=pc===null?"No spending last month to compare":(pc>=0?"▲ ":"▼ ")+Math.abs(pc).toFixed(1)+"% vs last month";
+ var by={};S.expenses.forEach(function(e){if(e.date.slice(0,7)===month)by[e.category]=(by[e.category]||0)+e.amount});
+ var ids=Object.keys(by),off=25,arcs="",leg="";
+ ids.forEach(function(id){var p=by[id]/cur*100,c=cat(id);arcs+="<circle r='15.9155' cx='21' cy='21' fill='none' stroke='"+c.color+"' stroke-width='7' stroke-dasharray='"+p+" "+(100-p)+"' stroke-dashoffset='"+off+"'/>";off-=p;leg+="<span><span class='dot' style='display:inline-block;width:12px;height:12px;vertical-align:middle;background:"+c.color+"'></span> "+esc(c.name)+" "+inr(by[id])+"</span>"});
+ var donut=ids.length?"<svg viewBox='0 0 42 42' width='200' height='200' style='display:block;margin:auto' role='img' aria-label='Spend by category'>"+arcs+"<text x='21' y='22' text-anchor='middle' font-size='4.5' fill='currentColor' font-weight='700'>"+inr(cur)+"</text></svg><div class='legend'>"+leg+"</div>":"<p class='muted'>No expenses in this month.</p>";
+ var ms=[];for(var i=5;i>=0;i--)ms.push(shift(month,-i));
+ var vals=ms.map(monthTotal),mx=Math.max.apply(null,vals.concat([1])),bars="";
+ ms.forEach(function(m,i){var h=vals[i]/mx*100,x=12+i*47;bars+="<rect x='"+x+"' y='"+(120-h)+"' width='34' height='"+h+"' rx='6' fill='"+(m===month?"var(--accent)":"#f783ac")+"'/><text x='"+(x+17)+"' y='135' text-anchor='middle' font-size='10' fill='currentColor'>"+mlabel(m)+"</text><text x='"+(x+17)+"' y='"+(116-h)+"' text-anchor='middle' font-size='8' fill='currentColor'>"+(vals[i]?Math.round(vals[i]):"")+"</text>"});
+ return"<div class='card'><div class='row sb'><h2>Monthly summary</h2><input type='month' id='mon' value='"+month+"' style='width:auto' aria-label='Select month'></div><div class='big'>"+inr(cur)+"</div><div class='muted'>"+chg+"</div></div>"+
+ "<div class='card'><h3>Category breakdown</h3>"+donut+"</div>"+
+ "<div class='card'><h3>Last 6 months</h3><svg viewBox='0 0 300 142' width='100%' role='img' aria-label='Monthly spend trend'>"+bars+"</svg></div>"+
+ "<button class='btn' id='csv'>Export CSV</button>"
+}
+function vCats(){
+ var rows=S.categories.map(function(c){return"<div class='catrow'><span class='dot' style='background:"+c.color+"'></span><span style='flex:1'>"+esc(c.name)+"</span><button class='btn ghost sm' data-edit='"+c.id+"'>Edit</button><button class='btn ghost sm' data-rm='"+c.id+"'>Delete</button></div>"}).join("");
+ return"<div class='card'><div class='row sb'><h2>Categories</h2><button class='btn sm' data-act='newcat'>+ Add category</button></div>"+rows+"</div>"
+}
+function bind(){
+ document.querySelectorAll("[data-act]").forEach(function(b){b.onclick=function(){b.dataset.act==="add"?expForm():catForm()}});
+ document.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){confirmM("This expense will be removed permanently.","Delete",function(){S.expenses=S.expenses.filter(function(e){return e.id!==b.dataset.del});save();render();toast("Expense deleted")})}});
+ document.querySelectorAll("[data-edit]").forEach(function(b){b.onclick=function(){catForm(b.dataset.edit)}});
+ document.querySelectorAll("[data-rm]").forEach(function(b){b.onclick=function(){rmCat(b.dataset.rm)}});
+ var m=$("#mon");if(m)m.onchange=function(){if(m.value){month=m.value;render()}};
+ var c=$("#csv");if(c)c.onclick=csvM
+}
+document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){view=t.dataset.v;render()}});
+$("#add").onclick=expForm;
+
+function expForm(){
+ var opts=S.categories.map(function(c){return"<option value='"+c.id+"'>"+esc(c.name)+"</option>"}).join("");
+ modal("<h3>Add expense</h3><label for='fa'>Amount (₹)</label><input id='fa' type='number' step='0.01' inputmode='decimal'><div class='err' id='ea'></div><label for='fc'>Category</label><select id='fc'><option value=''>Select a category</option>"+opts+"</select><div class='err' id='ec'></div><label for='fd'>Date</label><input id='fd' type='date' value='"+today()+"'><div class='err' id='ed'></div><label for='fn'>Note (optional, max 120 characters)</label><input id='fn' maxlength='200'><div class='err' id='en'></div><div class='row sb' style='margin-top:12px'><button class='btn ghost' id='x'>Cancel</button><button class='btn' id='ok'>Save expense</button></div>");
+ $("#x").onclick=closeM;
+ $("#ok").onclick=function(){
+  var a=parseFloat($("#fa").value),c=$("#fc").value,d=$("#fd").value,n=$("#fn").value.trim(),bad=false;
+  $("#ea").textContent=!(a>0)?"Enter an amount greater than 0.":"";
+  $("#ec").textContent=!c?"Choose a category.":"";
+  $("#ed").textContent=!d?"Pick a date.":"";
+  $("#en").textContent=n.length>120?"Note must be 120 characters or fewer.":"";
+  if(!(a>0)||!c||!d||n.length>120)return;
+  S.expenses.push({id:uid(),amount:a,category:c,date:d,note:n});save();closeM();render();toast("Expense added")
+ }
+}
+function catForm(id){
+ var c=id?cat(id):{name:"",color:"#e64980"};
+ modal("<h3>"+(id?"Edit category":"Add category")+"</h3><label for='cn'>Name</label><input id='cn' maxlength='30' value='"+esc(c.name)+"'><div class='err' id='cne'></div><label for='cc'>Colour</label><input id='cc' type='color' value='"+c.color+"'><div class='row sb' style='margin-top:16px'><button class='btn ghost' id='x'>Cancel</button><button class='btn' id='ok'>Save category</button></div>");
+ $("#x").onclick=closeM;
+ $("#ok").onclick=function(){
+  var n=$("#cn").value.trim();
+  if(!n){$("#cne").textContent="Enter a category name.";return}
+  if(S.categories.some(function(x){return x.id!==id&&x.name.toLowerCase()===n.toLowerCase()})){$("#cne").textContent="That category already exists.";return}
+  if(id){c.name=n;c.color=$("#cc").value}else S.categories.push({id:uid(),name:n,color:$("#cc").value});
+  save();closeM();render()
+ }
+}
+function rmCat(id){
+ var used=S.expenses.filter(function(e){return e.category===id}).length,others=S.categories.filter(function(c){return c.id!==id});
+ if(!others.length){toast("Keep at least one category");return}
+ if(!used){confirmM("Delete the category “"+esc(cat(id).name)+"”?","Delete",function(){S.categories=others;save();render()});return}
+ var o=others.map(function(c){return"<option value='"+c.id+"'>"+esc(c.name)+"</option>"}).join("");
+ modal("<h3>Category in use</h3><p>"+used+" expense"+(used>1?"s use":" uses")+" “"+esc(cat(id).name)+"”. Move them to another category before deleting.</p><label for='rt'>Move expenses to</label><select id='rt'>"+o+"</select><div class='row sb' style='margin-top:16px'><button class='btn ghost' id='x'>Cancel</button><button class='btn danger' id='ok'>Move and delete</button></div>");
+ $("#x").onclick=closeM;
+ $("#ok").onclick=function(){var t=$("#rt").value;S.expenses.forEach(function(e){if(e.category===id)e.category=t});S.categories=others;save();closeM();render()}
+}
+function csvM(){
+ var q=function(v){return'"'+String(v).replace(/"/g,'""')+'"'};
+ var rows=[["Date","Category","Amount","Note"]].concat(S.expenses.slice().sort(function(a,b){return a.date.localeCompare(b.date)}).map(function(e){return[e.date,cat(e.category).name,e.amount,e.note]}));
+ var csv=rows.map(function(r){return r.map(q).join(",")}).join("\n");
+ modal("<h3>Export CSV</h3><p class='muted'>Download the file, or copy the text below if downloads are blocked in this view.</p><textarea id='ct' readonly></textarea><div class='row sb' style='margin-top:12px'><button class='btn ghost' id='cp'>Copy</button><button class='btn' id='dl'>Download .csv</button></div>");
+ $("#ct").value=csv;
+ $("#cp").onclick=function(){$("#ct").select();try{navigator.clipboard.writeText(csv).then(function(){toast("Copied")},function(){document.execCommand("copy");toast("Copied")})}catch(e){try{document.execCommand("copy");toast("Copied")}catch(_){}}};
+ $("#dl").onclick=function(){try{var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="expenses.csv";document.body.appendChild(a);a.click();a.remove()}catch(e){toast("Use Copy instead")}}
+}
+render();
+</script>
+</body>
+</html>
